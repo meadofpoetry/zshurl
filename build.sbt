@@ -1,14 +1,12 @@
 import Dependencies._
 
-enablePlugins(FlywayPlugin)
-
 ThisBuild / scalaVersion     := "2.13.4"
 ThisBuild / version          := "0.1.0-SNAPSHOT"
 ThisBuild / organization     := "org.meadofpoetry"
 ThisBuild / organizationName := "meadofpoetry"
 
 lazy val root = (project in file("."))
-  .settings(projectSettings ++ flywaySettings)
+  .settings(projectSettings)
 
 val projectSettings = Seq(
   name := "zshurl",

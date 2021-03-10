@@ -21,6 +21,12 @@ object Queries {
   private def selectUrlQuery(slug: String) =
     sql"SELECT url FROM links WHERE slug = $slug".query[String].unique
 
+  private def updateLinkQuery(slug: String, lastVisited: OffsetDateTime) =
+    sql"UPDATE links SET visits = visits + 1, last_visited = $lastVisited WHERE slug = $slug".update
+
+  private def updateVisitsQuery(slug: String, lastVisited: OffsetDateTime, referer: String) =
+    sql"INSERT INTO visits(slug, visit_date, referer) VALUES ($slug, $lastVisited, $referer)".update
+
   def insertLink(url: String, slug: String, created: OffsetDateTime): RIO[DB, Unit] =
     ZIO.accessM[DB](conn =>
       insertLinkQuery(url, slug, created).run.transact(conn.get) *> ZIO.succeed(())
@@ -35,4 +41,16 @@ object Queries {
     ZIO.accessM[DB](conn =>
       selectUrlQuery(slug).transact(conn.get)
     )
+
+  def updateOnVisit(
+    slug: String,
+    lastVisited: OffsetDateTime,
+    referer: String
+  ) = ZIO.accessM[DB] { conn =>
+    val q = for {
+      _ <- updateLinkQuery(slug, lastVisited).run
+      _ <- updateVisitsQuery(slug, lastVisited, referer).run
+    } yield (())
+    q.transact(conn.get)
+  }
 }

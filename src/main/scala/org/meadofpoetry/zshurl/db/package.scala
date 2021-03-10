@@ -14,11 +14,17 @@ package object db {
 
   type DB = Has[Transactor[Task]]
 
-  val migrate: ZIO[DB, Throwable, Unit] =
-    Migration.up
+  val migrate: ZIO[DB with Logging, Throwable, Unit] = {
+    log.info("Preparing database migration...") *>
+    Migration.up *>
+    log.info("Database migratio complete")
+  }
 
-  val cleanup: ZIO[DB, Throwable, Unit] =
-    Migration.down
+  val cleanup: ZIO[DB with Logging, Throwable, Unit] = {
+    log.info("Preparing database cleanup...") *>
+    Migration.down *>
+    log.info("Database cleanup complete")
+  }
 
   object DB {
 
