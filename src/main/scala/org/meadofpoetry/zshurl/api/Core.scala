@@ -41,6 +41,25 @@ object Core {
         )
       } yield resp
 
+    case request @ GET -> Root / "api" / "original" =>
+      for {
+        state     <- ZIO.access[State](_.get)
+        req       <- Http.parse[UrlMessage](request)
+        slug      = req.url.path.tail
+        longURL   <- Queries.selectUrl(slug)
+        time      <- currentDateTime
+        userAgent = request.headers.find(
+          _.name == CIString("User-Agent")
+        )
+        _         <- Queries.updateOnVisit(
+          slug, time, userAgent.map(_.value).getOrElse("")
+        )
+        resp      <- Uri.fromString(longURL).fold(
+          err => Http.error("failed to retrieve URL"),
+          ok  => Http.ok(UrlMessage(ok))
+        )
+      } yield resp
+
     case request @ GET -> Root / slug =>
       for {
         longURL   <- Queries.selectUrl(slug)
