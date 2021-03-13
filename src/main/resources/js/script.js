@@ -1,4 +1,4 @@
-
+/*
 function utf8_to_b64( str ) {
     return window.btoa(unescape(encodeURIComponent( str )));
 }
@@ -6,28 +6,26 @@ function utf8_to_b64( str ) {
 function b64_to_utf8( str ) {
     return decodeURIComponent(escape(window.atob( str )));
 }
-
+*/
 const Form = () => {
     
     const [name, setName] = React.useState('');
 
     async function sendURL() {
-        const encoded = utf8_to_b64(name)
         const response = await fetch("/api/shortify", {
             method: 'POST', // *GET, POST, PUT, DELETE, etc.
             mode: 'cors', // no-cors, *cors, same-origin
             cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
             credentials: 'same-origin', // include, *same-origin, omit
             headers: {
-                //'Content-Type': 'application/json'
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json'
             },
             //redirect: 'follow', // manual, *follow, error
             //referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-            body: encoded // body data type must match "Content-Type" header
+            body: JSON.stringify({ url: name }) // body data type must match "Content-Type" header
         });
-        const uri64 = await response.text();
-        return b64_to_utf8(uri64);
+        const res = await response.json();
+        return res.url;
     }
     
     async function handleSubmit(e) {    

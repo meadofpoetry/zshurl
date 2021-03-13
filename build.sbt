@@ -12,12 +12,20 @@ val projectSettings = Seq(
   name := "zshurl",
   libraryDependencies ++= Seq(
     // Zio
-    "dev.zio" %% "zio" % "1.0.3",
-    "dev.zio" %% "zio-interop-cats" % "2.2.0.1",
+    "dev.zio" %% "zio" % "1.0.5",
+    "dev.zio" %% "zio-interop-cats" % "2.3.1.0",
     "dev.zio" %% "zio-logging" % "0.5.3",
+
     // Http4s
     "org.http4s" %% "http4s-dsl" % http4sVer,
     "org.http4s" %% "http4s-blaze-server" % http4sVer,
+    "org.http4s" %% "http4s-circe" % http4sVer,
+
+    // Circe
+    "io.circe" %% "circe-core" % circeVer,
+    "io.circe" %% "circe-generic" % circeVer,
+    "io.circe" %% "circe-parser" % circeVer,
+    //"io.circe" %% "circe-generic-extras" % circeVer,
 
     // Doobie
     "org.tpolecat" %% "doobie-core"      % doobieVer,
@@ -35,5 +43,6 @@ val projectSettings = Seq(
 val scala2_13 = "2.13.3"
 val scala2_12 = "2.12.8"
 
-val http4sVer = "1.0.0-M7"
-val doobieVer = "0.10.0"
+val http4sVer = "0.21.20"
+val circeVer  = "0.13.0"
+val doobieVer = "0.12.1"

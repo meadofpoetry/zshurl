@@ -6,6 +6,9 @@ import zio.logging._
 
 package object config {
 
+ // case class RequiredVariables(vars: List[String])
+ //     extends Exception("Following variables are required but not set: " + vars.mkString(", "))
+
   final case class Config(
     logLevel: LogLevel,
     host: String,
@@ -18,33 +21,36 @@ package object config {
   )
 
   object Config {
-    // TODO dealing with errors and bad values
-    val live: ZLayer[System with Logging, Throwable, Has[Config]] = ZLayer.fromEffect {
+
+    case class RequiredVariables(vars: List[String])
+        extends Exception("Following variables are required but not set: " +
+          vars.mkString(", "))
+
+    val live: ZLayer[System, Throwable, Has[Config]] = ZLayer.fromEffect {
       val vhost = envWithDefault("ZSHURL_HOST")(Some(_), "localhost")
       val vport = envWithDefault("ZSHURL_PORT")(_.toIntOption, 8080)
       val vdbname = envWithDefault("ZSHURL_DBNAME")(Some(_), "shurl")
-      val vdbuser = envRequired("ZSHURL_DBUSER", "ZSHURL_DBUSER is not set")(Some(_))
+      val vdbuser = envRequired("ZSHURL_DBUSER", "USER")(Some(_))
       val vlogLevel = envWithDefault("ZSHURL_LOG_LEVEL")(logLevelFromString, LogLevel.Warn)
-      for {
-        (host, (port, (dbname, (dbuser, logLevel)))) <-
-        vhost.validate(vport.validate(vdbname.validate(vdbuser.validate(vlogLevel))))
-        .catchAllCause(c =>
-          ZIO.foreach(c.failures)(log.error(_)) *>
-            ZIO.fail(new Exception("One or several environment variable are not set"))
-        )
-        dbpass <- env("ZSHURL_DBPASS")
-        dbhost <- env("ZSHURL_DBHOST")
-        dbport <- env("ZSHURL_DBPORT").map(_.map(_.toInt))
-      } yield Config(
-        logLevel,
-        host,
-        port,
-        dbname,
-        dbuser,
-        dbpass,
-        dbhost,
-        dbport
-      )
+      vhost.validate(vport.validate(vdbname.validate(vdbuser.validate(vlogLevel))))
+        .mapErrorCause(c => Cause.fail(RequiredVariables(c.failures)))
+        .flatMap {
+          case (host, (port, (dbname, (dbuser, logLevel)))) =>
+            for {
+              dbpass <- env("ZSHURL_DBPASS")
+              dbhost <- env("ZSHURL_DBHOST")
+              dbport <- env("ZSHURL_DBPORT").map(_.map(_.toInt))
+            } yield Config(
+              logLevel,
+              host,
+              port,
+              dbname,
+              dbuser,
+              dbpass,
+              dbhost,
+              dbport
+            )
+        }
     }
 
     private def envWithDefault[A](v: String)(conv: String => Option[A], default: => A): ZIO[System, String, A] =
@@ -53,17 +59,34 @@ package object config {
         case Some(x) => x
       })
 
-    private def envRequired[A](v: String, err: => String)(conv: String => Option[A]): ZIO[System, String, A] =
+    private def envRequired[A](v: String)(conv: String => Option[A]): ZIO[System, String, A] =
       env(v).foldM(
-        _ => ZIO.fail(err),
+        _ => ZIO.fail(v),
         s => s.flatMap(conv) match {
           case Some(x) => ZIO.succeed(x)
-          case None => ZIO.fail(err)
+          case None => ZIO.fail(v)
         }
       )
 
+    private def envRequired[A](first: String, rest: String*)(conv: String => Option[A]): ZIO[System, String, A] = {
+      def firstSuccess(l: Seq[String]): ZIO[System, String, A] =
+        l match {
+          case Nil => ZIO.fail(first)
+          case v+:tl =>
+            env(v).foldM(
+              _ => firstSuccess(tl),
+              s => s.flatMap(conv) match {
+                case Some(x) => ZIO.succeed(x)
+                case None => firstSuccess(tl)
+              }
+            )
+        }
+      firstSuccess(first +: rest)
+    }
+
     private def logLevelFromString(s: String): Option[LogLevel] = {
-      import org.typelevel.ci.CIString
+      import org.http4s.util.{ CaseInsensitiveString => CIString }
+      // import org.typelevel.ci.CIString
       val cis = CIString(s)
       cis match {
         case n if n == CIString("fatal") => Some(LogLevel.Fatal)

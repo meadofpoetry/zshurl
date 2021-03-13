@@ -2,12 +2,6 @@ package org.meadofpoetry.zshurl
 
 package object util {
 
-  def base64decode(s: String): String =
-    new String(java.util.Base64.getDecoder.decode(s))
-
-  def base64encode(s: String): Array[Byte] =
-    java.util.Base64.getEncoder.encode(s.getBytes())
-
   def genURLSlug(id: Long): String = {
     val sb = new StringBuilder(8)
 
