@@ -2,15 +2,12 @@ package org.meadofpoetry.zshurl.api
 
 import org.http4s._
 import org.http4s.headers.Location
-import org.http4s.dsl.Http4sDsl
-import org.http4s.server.staticcontent._
 import org.http4s.implicits._
 import org.http4s.util.{ CaseInsensitiveString => CIString }
-import org.http4s.circe._
 import zio._
 import zio.clock._
-import zio.interop.catz._
 import zio.logging._
+import zio.interop.catz._
 import org.meadofpoetry.zshurl.db._
 import org.meadofpoetry.zshurl.util._
 import org.meadofpoetry.zshurl.api.Http
